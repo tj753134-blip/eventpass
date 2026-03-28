@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const cron = require('node-cron');
 const path = require('path');
+const fs = require('fs');
 const { initDB, pool } = require('./db');
 const routes = require('./routes');
 
@@ -22,6 +23,11 @@ const publicPath = path.join(__dirname, 'public');
 
 // Servir frontend estático com log de verificação
 console.log(`📂 Servindo arquivos estáticos de: ${publicPath}`);
+if (fs.existsSync(path.join(publicPath, 'index.html'))) {
+  console.log('✅ Arquivo index.html encontrado!');
+} else {
+  console.error('❌ AVISO: index.html NÃO encontrado na pasta public!');
+}
 app.use(express.static(publicPath));
 
 // ─── ROTAS API ───────────────────────────────────────────────────────────────
