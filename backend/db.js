@@ -3,7 +3,9 @@ const { Pool } = require('pg');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Railway e a maioria dos serviços de nuvem exigem SSL com rejectUnauthorized: false
+  // para conexões com PostgreSQL gerenciado.
+  ssl: process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('rlwy.net')) ? { rejectUnauthorized: false } : false,
 });
 
 const initDB = async () => {

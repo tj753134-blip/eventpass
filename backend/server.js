@@ -60,12 +60,26 @@ cron.schedule('0 * * * *', async () => {
 
 // ─── INICIAR SERVIDOR ────────────────────────────────────────────────────────
 const start = async () => {
-  await initDB();
-  app.listen(PORT, () => {
-    console.log(`\n🎟️  Eventpass rodando na porta ${PORT}`);
-    console.log(`📡  API: http://localhost:${PORT}/api`);
-    console.log(`🌐  Frontend: http://localhost:${PORT}\n`);
-  });
+  try {
+    const requiredEnv = ['DATABASE_URL', 'JWT_SECRET', 'CLOUDINARY_CLOUD_NAME'];
+    const missing = requiredEnv.filter(key => !process.env[key]);
+
+    if (missing.length > 0) {
+      console.error(`❌ ERRO DE CONFIGURAÇÃO: Variáveis faltando no Railway: ${missing.join(', ')}`);
+      process.exit(1);
+    }
+
+    console.log('⏳ Iniciando conexão com o PostgreSQL...');
+    await initDB();
+
+    app.listen(PORT, () => {
+      console.log(`\n🎟️  EVENTPASS ONLINE - Porta: ${PORT}`);
+      console.log(`📡  API: /api`);
+    });
+  } catch (err) {
+    console.error('❌ Falha ao iniciar servidor:', err.message);
+    process.exit(1);
+  }
 };
 
 start().catch(err => {
