@@ -4,8 +4,10 @@ const { Pool } = require('pg');
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   // Railway e a maioria dos serviços de nuvem exigem SSL com rejectUnauthorized: false
-  // para conexões com PostgreSQL gerenciado.
-  ssl: process.env.NODE_ENV === 'production' || (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('rlwy.net')) ? { rejectUnauthorized: false } : false,
+  // Suportamos tanto o domínio público (.rlwy.net) quanto o privado (.railway.internal)
+  ssl: process.env.NODE_ENV === 'production' || 
+       (process.env.DATABASE_URL && (process.env.DATABASE_URL.includes('rlwy.net') || process.env.DATABASE_URL.includes('railway.internal'))) 
+       ? { rejectUnauthorized: false } : false,
 });
 
 const initDB = async () => {
