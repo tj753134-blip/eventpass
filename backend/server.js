@@ -18,7 +18,7 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-const publicPath = path.join(__dirname, 'public');
+const publicPath = path.resolve(__dirname, 'public');
 
 // Servir frontend estático com log de verificação
 console.log(`📂 Servindo arquivos estáticos de: ${publicPath}`);
