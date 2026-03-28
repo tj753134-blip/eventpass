@@ -18,8 +18,11 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Servir frontend estático
-app.use(express.static(path.join(__dirname, 'public')));
+const publicPath = path.join(__dirname, 'public');
+
+// Servir frontend estático com log de verificação
+console.log(`📂 Servindo arquivos estáticos de: ${publicPath}`);
+app.use(express.static(publicPath));
 
 // ─── ROTAS API ───────────────────────────────────────────────────────────────
 app.use('/api', routes);
@@ -29,7 +32,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().
 
 // SPA fallback
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 // ─── CRON JOBS ───────────────────────────────────────────────────────────────
