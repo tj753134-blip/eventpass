@@ -36,10 +36,16 @@ router.post('/auth/registro', async (req, res) => {
   try {
     const existe = await pool.query('SELECT id FROM usuarios WHERE login = $1', [login]);
     if (existe.rows.length) return res.status(409).json({ erro: 'Login já em uso' });
+
+    // Verifica se é o primeiro usuário do sistema
+    const { rows: countRows } = await pool.query('SELECT COUNT(*) FROM usuarios');
+    const ePrimeiroUsuario = parseInt(countRows[0].count) === 0;
+
     const senha_hash = await bcrypt.hash(senha, 12);
+
     const { rows } = await pool.query(
-      'INSERT INTO usuarios (nome, login, senha_hash, telefone) VALUES ($1,$2,$3,$4) RETURNING id, nome, login, tipo_plano, is_admin',
-      [nome, login, senha_hash, telefone]
+      'INSERT INTO usuarios (nome, login, senha_hash, telefone, is_admin, tipo_plano) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, nome, login, tipo_plano, is_admin',
+      [nome, login, senha_hash, telefone, ePrimeiroUsuario, ePrimeiroUsuario ? 'pro' : 'gratis']
     );
     const token = jwt.sign(rows[0], process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, usuario: rows[0] });
