@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eventpass — Bilhetes Inteligentes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎟️</text></svg>">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #08080f;
+      --surface: #0f0f1a;
+      --surface2: #16162a;
+      --border: rgba(255,255,255,0.07);
+      --primary: #7c6aff;
+      --primary-dim: rgba(124,106,255,0.15);
+      --accent: #ff6ab0;
+      --accent-dim: rgba(255,106,176,0.12);
+      --gold: #ffc542;
+      --text: #e8e8f0;
+      --muted: #7a7a9a;
+      --success: #3ecf8e;
+      --danger: #ff5757;
+      --warn: #ffc542;
+      --radius: 14px;
+      --radius-sm: 8px;
+      --font-head: 'Syne', sans-serif;
+      --font-body: 'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE OVERLAY ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── LAYOUT ── */
+    #app { position: relative; z-index: 1; }
+    .page { display: none; min-height: 100vh; }
+    .page.active { display: block; }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,8,15,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .nav-logo {
+      font-family: var(--font-head);
+      font-size: 1.4rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      cursor: pointer;
+    }
+    .nav-links { display: flex; gap: 4px; align-items: center; }
+    .nav-btn {
+      background: transparent; border: none; color: var(--muted);
+      font-family: var(--font-body); font-size: 0.9rem;
+      padding: 8px 14px; border-radius: var(--radius-sm);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .nav-btn:hover, .nav-btn.active { color: var(--text); background: var(--surface2); }
+    .nav-user {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .badge-plano {
+      font-size: 0.7rem; font-weight: 700; padding: 3px 8px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .badge-gratis { background: var(--surface2); color: var(--muted); }
+    .badge-pro { background: linear-gradient(135deg, var(--primary), var(--accent)); color: #fff; }
+    .badge-admin { background: var(--gold); color: #000; }
+
+    /* ── HERO ── */
+    .hero {
+      padding: 100px 24px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(124,106,255,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--primary-dim); border: 1px solid rgba(124,106,255,0.3);
+      color: var(--primary); font-size: 0.8rem; font-weight: 600;
+      padding: 6px 14px; border-radius: 20px; margin-bottom: 28px;
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .hero h1 {
+      font-family: var(--font-head); font-size: clamp(2rem, 5vw, 4rem);
+      font-weight: 800; line-height: 1.1; margin-bottom: 20px;
+      letter-spacing: -0.02em;
+      animation: slideInLeft 0.8s ease-out;
+    }
+    .hero h1 span { background: linear-gradient(135deg, var(--primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { 
+      color: var(--muted); font-size: 1.1rem; max-width: 520px; margin: 0 auto 40px; line-height: 1.7; 
+      animation: fadeIn 1s ease-out 0.3s both;
+    }
+    .hero-btns { 
+      display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+      animation: slideInUp 0.8s ease-out 0.6s both;
+    }
+    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-30px); } to { opacity: 1; transform: translateX(0); } }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 12px 24px; border-radius: var(--radius-sm);
+      font-family: var(--font-body); font-size: 0.95rem; font-weight: 500;
+      border: none; cursor: pointer; transition: all 0.2s; text-decoration: none;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), #9d6aff);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(124,106,255,0.3);
+    }
+    .btn-primary:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 8px 30px rgba(124,106,255,0.35);
+      background: linear-gradient(135deg, #9d6aff, var(--primary));
+    }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { background: var(--surface2); border-color: var(--primary); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-success { background: var(--success); color: #000; }
+    .btn-sm { padding: 7px 14px; font-size: 0.82rem; }
+    .btn-gold { background: var(--gold); color: #000; font-weight: 700; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      animation: fadeInUp 0.6s ease-out;
+    }
+    .card:hover { 
+      border-color: rgba(124,106,255,0.25); 
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(124,106,255,0.15);
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card-grid { display: grid; gap: 16px; }
+    .card-grid-2 { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+    .card-grid-3 { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+
+    /* ── STAT CARDS ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .stat-value { font-family: var(--font-head); font-size: 2rem; font-weight: 800; }
+    .stat-label { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+
+    /* ── FORMS ── */
+    .form-group { margin-bottom: 18px; }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 7px; font-weight: 500; }
+    input, textarea, select {
+      width: 100%; padding: 11px 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-family: var(--font-body); font-size: 0.95rem;
+      transition: border-color 0.2s; outline: none;
+    }
+    input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+    select option { background: var(--surface2); }
+    textarea { resize: vertical; min-height: 90px; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px); z-index: 1000;
+      display: none; align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+      width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } }
+    .modal-title { font-family: var(--font-head); font-size: 1.3rem; font-weight: 700; margin-bottom: 24px; }
+    .modal-close { float: right; background: none; border: none; color: var(--muted); font-size: 1.4rem; cursor: pointer; }
+
+    /* ── TABLES ── */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    th { background: var(--surface2); padding: 12px 16px; text-align: left; color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 12px 16px; border-top: 1px solid var(--border); vertical-align: middle; }
+    tr:hover td { background: rgba(124,106,255,0.03); }
+
+    /* ── STATUS CHIPS ── */
+    .chip {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .chip-green { background: rgba(62,207,142,0.15); color: var(--success); }
+    .chip-red { background: rgba(255,87,87,0.15); color: var(--danger); }
+    .chip-yellow { background: rgba(255,197,66,0.15); color: var(--gold); }
+    .chip-purple { background: var(--primary-dim); color: var(--primary); }
+    .chip-muted { background: var(--surface2); color: var(--muted); }
+
+    /* ── SECTION ── */
+    .section { padding: 32px 24px; max-width: 1100px; margin: 0 auto; }
+    .section-title { font-family: var(--font-head); font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+    .section-sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+
+    /* ── QR SCAN ── */
+    .qr-area {
+      background: var(--surface2); border: 2px dashed var(--border);
+      border-radius: var(--radius); padding: 40px; text-align: center;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .qr-area:hover { border-color: var(--primary); }
+    .qr-icon { font-size: 3rem; margin-bottom: 12px; }
+
+    /* ── ALERTS ── */
+    .alert {
+      position: fixed; top: 80px; right: 20px; z-index: 9999;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 20px;
+      font-size: 0.9rem; max-width: 340px;
+      animation: slideIn 0.3s ease;
+    }
+    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } }
+    .alert-success { border-color: var(--success); color: var(--success); }
+    .alert-error { border-color: var(--danger); color: var(--danger); }
+    .alert-info { border-color: var(--primary); color: var(--primary); }
+
+    /* ── TICKET CARD ── */
+    .ticket {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+      position: relative;
+    }
+    .ticket::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+    }
+    .ticket-header { padding: 20px; border-bottom: 1px solid var(--border); }
+    .ticket-body { padding: 20px; }
+    .ticket-qr { text-align: center; }
+    .ticket-qr img { width: 140px; height: 140px; border-radius: 10px; }
+
+    /* ── CHECKIN RESULT ── */
+    .checkin-result {
+      padding: 32px; border-radius: var(--radius); text-align: center;
+      animation: pulse 0.4s ease;
+    }
+    @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.02)} }
+    .checkin-ok { background: rgba(62,207,142,0.1); border: 1px solid var(--success); }
+    .checkin-err { background: rgba(255,87,87,0.1); border: 1px solid var(--danger); }
+    .checkin-icon { font-size: 3.5rem; margin-bottom: 12px; }
+
+    /* ── DIVIDER ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 24px; overflow-x: auto; }
+    .tab-btn {
+      padding: 10px 18px; background: transparent; border: none;
+      color: var(--muted); font-family: var(--font-body); font-size: 0.9rem;
+      cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .tab-btn.active { color: var(--primary); border-color: var(--primary); }
+
+    /* ── EMPTY STATE ── */
+    .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: 0.4; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      .hero { padding: 60px 16px 50px; }
+      .section { padding: 20px 16px; }
+      .nav-links .nav-btn span { display: none; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      footer { padding: 20px 16px; font-size: 0.8rem; }
+    }
+
+    /* ── LOADER ── */
+    .loader { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── PAGAMENTO CARD ── */
+    .ref-box {
+      background: var(--surface2); border: 1px solid var(--primary);
+      border-radius: var(--radius); padding: 20px; text-align: center; margin: 16px 0;
+    }
+    .ref-code { font-family: var(--font-head); font-size: 2.2rem; font-weight: 800; color: var(--primary); letter-spacing: 0.1em; }
+    .ref-instrucoes { color: var(--muted); font-size: 0.85rem; margin-top: 12px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- ═══ NAV ═══ -->
+  <nav id="nav" style="display:none;">
+    <div class="nav-logo" onclick="navigate('home')">Eventpass</div>
+    <div class="nav-links">
+      <button class="nav-btn" onclick="navigate('eventos')">🎪 <span>Eventos</span></button>
+      <button class="nav-btn" onclick="navigate('meus-bilhetes')">🎟️ <span>Bilhetes</span></button>
+      <button class="nav-btn" id="nav-checkin" onclick="navigate('checkin')" style="display:none;">📷 <span>Check-in</span></button>
+      <button class="nav-btn" id="nav-admin" onclick="navigate('admin')" style="display:none;">⚙️ <span>Admin</span></button>
+    </div>
+    <div class="nav-user">
+      <span id="nav-plano-badge" class="badge-plano"></span>
+      <button class="nav-btn" id="nav-user-name" onclick="navigate('perfil')"></button>
+      <button class="nav-btn" onclick="logout()">Sair</button>
+    </div>
+  </nav>
+
+  <!-- ═══ LANDING ═══ -->
+  <div id="page-landing" class="page active">
+    <section class="hero">
+      <h1>Gerencie eventos<br>com <span>inteligência</span></h1>
+      <p>Crie eventos, emita bilhetes com QR code, controle entradas e envie convites — tudo numa única plataforma.</p>
+      <div class="hero-btns">
+        <button class="btn btn-primary" onclick="showModal('modal-login')">Entrar na plataforma</button>
+        <button class="btn btn-outline" onclick="showModal('modal-registro')">Criar conta grátis</button>
+      </div>
+    </section>
+    <div class="section" style="padding-top:0;">
+      <div class="card-grid card-grid-3">
+        <div class="card"><div style="font-size:2rem;margin-bottom:12px;color:var(--primary);"><i class="fas fa-qrcode"></i></div><h3 style="font-family:var(--font-head);margin-bottom:8px;">QR Code Único</h3><p style="color:var(--muted);font-size:0.9rem;">Cada bilhete tem um QR exclusivo, impossível de duplicar ou fraudar.</p></div>
+        <div class="card"><div style="font-size:2rem;margin-bottom:12px;color:var(--accent);"><i class="fas fa-mobile-alt"></i></div><h3 style="font-family:var(--font-head);margin-bottom:8px;">Envio Automático</h3><p style="color:var(--muted);font-size:0.9rem;">Plano Pro envia convites automaticamente via WhatsApp ou Email.</p></div>
+        <div class="card"><div style="font-size:2rem;margin-bottom:12px;color:var(--success);"><i class="fas fa-credit-card"></i></div><h3 style="font-family:var(--font-head);margin-bottom:8px;">Pagamento Express</h3><p style="color:var(--muted);font-size:0.9rem;">Sistema de pagamento manual via Express integrado ao sistema.</p></div>
+        <div class="card"><div style="font-size:2rem;margin-bottom:12px;color:var(--gold);"><i class="fas fa-chart-line"></i></div><h3 style="font-family:var(--font-head);margin-bottom:8px;">Dashboard Completo</h3><p style="color:var(--muted);font-size:0.9rem;">Acompanhe entradas, saídas e relatórios em tempo real.</p></div>
+        <div class="card"><div style="font-size:2rem;margin-bottom:12px;color:var(--primary);"><i class="fas fa-file-pdf"></i></div><h3 style="font-family:var(--font-head);margin-bottom:8px;">Convites em PDF</h3><p style="color:var(--muted);font-size:0.9rem;">Gere e distribua convites personalizados em PDF ou imagem.</p></div>
+        <div class="card"><div style="font-size:2rem;margin-bottom:12px;color:var(--danger);"><i class="fas fa-shield-alt"></i></div><h3 style="font-family:var(--font-head);margin-bottom:8px;">Anti-Fraude Pro</h3><p style="color:var(--muted);font-size:0.9rem;">Telefone vinculado ao bilhete impede compartilhamento indevido.</p></div>
+      </div>
+    </div>
+    <footer style="text-align:center;padding:40px 24px;color:var(--muted);font-size:0.85rem;border-top:1px solid var(--border);margin-top:60px;">
+      <p>&copy; 2026 Eventpass. Todos os direitos reservados. Feito com ❤️ em Angola.</p>
+      <p>Contato: <a href="mailto:admin@eventpass.ao" style="color:var(--primary);">admin@eventpass.ao</a></p>
+    </footer>
+  </div>
+
+  <!-- ═══ HOME (pós-login) ═══ -->
+  <div id="page-home" class="page">
+    <div class="section">
+      <div class="section-title" id="home-titulo">Bem-vindo!</div>
+      <p class="section-sub">Acesse as funcionalidades pelo menu acima.</p>
+      <div class="stat-grid" id="home-stats"></div>
+      <div id="home-pendentes"></div>
+    </div>
+  </div>
+
+  <!-- ═══ EVENTOS ═══ -->
+  <div id="page-eventos" class="page">
+    <div class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+        <div>
+          <div class="section-title">Meus Eventos</div>
+          <p class="section-sub">Crie e gerencie seus eventos.</p>
+        </div>
+        <button class="btn btn-primary" onclick="showModal('modal-novo-evento')">+ Novo Evento</button>
+      </div>
+      <div id="lista-eventos" class="card-grid card-grid-2"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MEUS BILHETES ═══ -->
+  <div id="page-meus-bilhetes" class="page">
+    <div class="section">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px;">
+        <div>
+          <div class="section-title">Meus Bilhetes</div>
+          <p class="section-sub">Seus bilhetes e convites.</p>
+        </div>
+        <button class="btn btn-primary" onclick="showModal('modal-comprar-bilhete')">+ Comprar Bilhete</button>
+      </div>
+      <div id="lista-bilhetes" class="card-grid card-grid-2"></div>
+    </div>
+  </div>
+
+  <!-- ═══ CHECK-IN ═══ -->
+  <div id="page-checkin" class="page">
+    <div class="section" style="max-width:600px;">
+      <div class="section-title">Check-in de Convidados</div>
+      <p class="section-sub">Escaneie ou insira o código QR para validar entrada.</p>
+      <div class="qr-area" onclick="document.getElementById('qr-input').focus()">
+        <div class="qr-icon">📷</div>
+        <p style="color:var(--muted);">Clique aqui e leia o QR code ou insira o código manualmente</p>
+      </div>
+      <div class="form-group" style="margin-top:16px;">
+        <label>Código QR do bilhete</label>
+        <input type="text" id="qr-input" placeholder="EVENTPASS-xxxx..." onkeydown="if(event.key==='Enter')fazerCheckin()" />
+      </div>
+      <div class="form-group">
+        <label>Telefone (para verificação Pro, opcional)</label>
+        <input type="tel" id="qr-telefone" placeholder="244900000000" />
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="fazerCheckin()">✅ Validar Entrada</button>
+      <div id="checkin-result" style="margin-top:20px;"></div>
+    </div>
+  </div>
+
+  <!-- ═══ ADMIN ═══ -->
+  <div id="page-admin" class="page">
+    <div class="section">
+      <div class="section-title">Dashboard Administrativo</div>
+      <p class="section-sub" style="margin-bottom:20px;">Controle total da plataforma.</p>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="adminTab('visao-geral',this)">Visão Geral</button>
+        <button class="tab-btn" onclick="adminTab('pagamentos',this)">Pagamentos</button>
+        <button class="tab-btn" onclick="adminTab('usuarios',this)">Usuários</button>
+        <button class="tab-btn" onclick="adminTab('relatorios',this)">Relatórios</button>
+      </div>
+      <div id="admin-visao-geral">
+        <div class="stat-grid" id="admin-stats"></div>
+        <div id="admin-top-eventos"></div>
+      </div>
+      <div id="admin-pagamentos" style="display:none;">
+        <div id="lista-pagamentos-admin"></div>
+      </div>
+      <div id="admin-usuarios" style="display:none;">
+        <div id="lista-usuarios-admin"></div>
+      </div>
+      <div id="admin-relatorios" style="display:none;">
+        <div class="form-group" style="max-width:400px;">
+          <label>Selecionar Evento</label>
+          <select id="relatorio-evento-select"></select>
+        </div>
+        <button class="btn btn-primary" onclick="carregarRelatorio()">Gerar Relatório</button>
+        <div id="relatorio-resultado" style="margin-top:24px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PERFIL ═══ -->
+  <div id="page-perfil" class="page">
+    <div class="section" style="max-width:500px;">
+      <div class="section-title">Meu Perfil</div>
+      <p class="section-sub">Gerencie seus dados e plano.</p>
+      <div class="card">
+        <div class="form-group"><label>Nome</label><input id="perfil-nome" type="text" /></div>
+        <div class="form-group"><label>Telefone</label><input id="perfil-telefone" type="tel" /></div>
+        <div class="form-group"><label>Nova Senha (deixe vazio para manter)</label><input id="perfil-senha" type="password" /></div>
+        <button class="btn btn-primary" onclick="salvarPerfil()" style="width:100%;">Salvar Alterações</button>
+        <hr class="divider" />
+        <div id="perfil-plano-info"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ MODAIS ═══════════════ -->
+
+  <!-- Login -->
+  <div class="modal-overlay" id="modal-login">
+    <div class="modal">
+      <button class="modal-close" onclick="hideModal('modal-login')">✕</button>
+      <div class="modal-title">Entrar na plataforma</div>
+      <div class="form-group"><label>Login</label><input id="login-login" type="text" placeholder="seu_login" /></div>
+      <div class="form-group"><label>Senha</label><input id="login-senha" type="password" placeholder="••••••••" /></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="fazerLogin()">Entrar</button>
+      <p style="text-align:center;margin-top:16px;color:var(--muted);font-size:0.9rem;">Não tem conta? <a href="#" style="color:var(--primary);" onclick="hideModal('modal-login');showModal('modal-registro')">Cadastre-se</a></p>
+    </div>
+  </div>
+
+  <!-- Registro -->
+  <div class="modal-overlay" id="modal-registro">
+    <div class="modal">
+      <button class="modal-close" onclick="hideModal('modal-registro')">✕</button>
+      <div class="modal-title">Criar conta</div>
+      <div class="form-group"><label>Nome completo</label><input id="reg-nome" type="text" placeholder="Seu nome" /></div>
+      <div class="form-group"><label>Login (único)</label><input id="reg-login" type="text" placeholder="seu_login" /></div>
+      <div class="form-group"><label>Telefone</label><input id="reg-telefone" type="tel" placeholder="244900000000" /></div>
+      <div class="form-group"><label>Senha</label><input id="reg-senha" type="password" placeholder="••••••••" /></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="fazerRegistro()">Criar conta</button>
+    </div>
+  </div>
+
+  <!-- Novo Evento -->
+  <div class="modal-overlay" id="modal-novo-evento">
+    <div class="modal">
+      <button class="modal-close" onclick="hideModal('modal-novo-evento')">✕</button>
+      <div class="modal-title" id="evento-modal-title">Novo Evento</div>
+      <input type="hidden" id="evento-edit-id" />
+      <div class="form-group"><label>Nome do Evento *</label><input id="evento-nome" type="text" placeholder="Nome do evento" /></div>
+      <div class="form-group"><label>Tema</label><input id="evento-tema" type="text" placeholder="Ex: Aniversário, Corporativo..." /></div>
+      <div class="form-group"><label>Data e Hora *</label><input id="evento-data" type="datetime-local" /></div>
+      <div class="form-group"><label>Local</label><input id="evento-local" type="text" placeholder="Endereço ou local" /></div>
+      <div class="form-group"><label>Limite de Bilhetes Grátis</label><input id="evento-limite" type="number" value="50" min="1" /></div>
+      <div class="form-group"><label>Descrição</label><textarea id="evento-desc" placeholder="Descreva o evento..."></textarea></div>
+      <div class="form-group"><label>Imagem de Capa</label><input id="evento-imagem" type="file" accept="image/*" /></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="salvarEvento()">Criar Evento</button>
+    </div>
+  </div>
+
+  <!-- Comprar Bilhete -->
+  <div class="modal-overlay" id="modal-comprar-bilhete">
+    <div class="modal">
+      <button class="modal-close" onclick="hideModal('modal-comprar-bilhete')">✕</button>
+      <div class="modal-title">Comprar Bilhete</div>
+      <div class="form-group"><label>Evento *</label>
+        <select id="bilhete-evento">
+          <option value="">Selecione um evento...</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Nome do Convidado *</label><input id="bilhete-nome" type="text" placeholder="Nome que aparecerá no bilhete" /></div>
+      <div class="form-group"><label>Telefone</label><input id="bilhete-telefone" type="tel" placeholder="244900000000 (obrigatório no Pro)" /></div>
+      <div class="form-group"><label>Plano</label>
+        <select id="bilhete-plano" onchange="togglePlanoInfo()">
+          <option value="gratis">Grátis — Download manual de convite</option>
+          <option value="pro">Pro — Envio automático + Anti-fraude</option>
+        </select>
+      </div>
+      <div id="info-plano-pro" style="display:none;background:var(--primary-dim);border:1px solid rgba(124,106,255,0.3);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:0.85rem;color:var(--muted);">
+        ⚡ O plano Pro inclui envio automático de convite via WhatsApp e vinculação do telefone ao bilhete (anti-fraude). Requer pagamento manual via Express.
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="comprarBilhete()">Emitir Bilhete</button>
+    </div>
+  </div>
+
+  <!-- Bilhete Detalhes -->
+  <div class="modal-overlay" id="modal-bilhete-detalhe">
+    <div class="modal">
+      <button class="modal-close" onclick="hideModal('modal-bilhete-detalhe')">✕</button>
+      <div id="bilhete-detalhe-content"></div>
+    </div>
+  </div>
+
+  <!-- Pagamento Pro -->
+  <div class="modal-overlay" id="modal-pagamento">
+    <div class="modal">
+      <button class="modal-close" onclick="hideModal('modal-pagamento')">✕</button>
+      <div class="modal-title">💳 Pagamento Express</div>
+      <div id="pagamento-content"></div>
+    </div>
+  </div>
+
+  <!-- Upload Convite -->
+  <div class="modal-overlay" id="modal-upload-convite">
+    <div class="modal">
+      <button class="modal-close" onclick="hideModal('modal-upload-convite')">✕</button>
+      <div class="modal-title">Upload de Convite</div>
+      <input type="hidden" id="upload-bilhete-id" />
+      <div class="form-group"><label>Arquivo (PDF ou Imagem)</label><input id="upload-arquivo" type="file" accept=".pdf,image/*" /></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="uploadConvite()">Enviar para Cloudinary</button>
+    </div>
+  </div>
+
+  <!-- Confirmar Pagamento (ADM) -->
+  <div class="modal-overlay" id="modal-confirmar-pag">
+    <div class="modal">
+      <button class="modal-close" onclick="hideModal('modal-confirmar-pag')">✕</button>
+      <div class="modal-title">Confirmar Pagamento</div>
+      <input type="hidden" id="pag-id" />
+      <div id="pag-detalhes"></div>
+      <div class="form-group" style="margin-top:16px;"><label>Notas (opcional)</label><textarea id="pag-notas" placeholder="Observações sobre a confirmação..."></textarea></div>
+      <div style="display:flex;gap:10px;margin-top:8px;">
+        <button class="btn btn-success" style="flex:1;" onclick="confirmarPagamento('confirmar')">✅ Confirmar</button>
+        <button class="btn btn-danger" style="flex:1;" onclick="confirmarPagamento('rejeitar')">❌ Rejeitar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════
+const API = '/api';
+let token = localStorage.getItem('ep_token');
+let user = JSON.parse(localStorage.getItem('ep_user') || 'null');
+
+// ═══════════════════════════════════════════════════════
+// HTTP HELPERS
+// ═══════════════════════════════════════════════════════
+const api = async (method, endpoint, data, isFormData = false) => {
+  const headers = { ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  if (!isFormData) headers['Content-Type'] = 'application/json';
+  const res = await fetch(API + endpoint, {
+    method,
+    headers,
+    body: data ? (isFormData ? data : JSON.stringify(data)) : undefined,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.erro || 'Erro na requisição');
+  return json;
+};
+const get = (e) => api('GET', e);
+const post = (e, d, f) => api('POST', e, d, f);
+const put = (e, d) => api('PUT', e, d);
+const del = (e) => api('DELETE', e);
+
+// ═══════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════
+const showAlert = (msg, type = 'info', duration = 4000) => {
+  const el = document.createElement('div');
+  el.className = `alert alert-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+};
+
+const showModal = (id) => document.getElementById(id).classList.add('open');
+const hideModal = (id) => document.getElementById(id).classList.remove('open');
+
+const $ = (id) => document.getElementById(id);
+const html = (id, content) => { const el = $(id); if (el) el.innerHTML = content; };
+
+const fmtData = (d) => d ? new Date(d).toLocaleString('pt-AO', { day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit' }) : '-';
+const fmtStatus = (s) => {
+  const map = { dentro: ['chip-green','Dentro'], fora: ['chip-muted','Fora'], pendente: ['chip-yellow','Pendente'], confirmado: ['chip-green','Confirmado'], rejeitado: ['chip-red','Rejeitado'], expirado: ['chip-red','Expirado'] };
+  const [cls, txt] = map[s] || ['chip-muted', s];
+  return `<span class="chip ${cls}">${txt}</span>`;
+};
+
+// ═══════════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ═══════════════════════════════════════════════════════
+const navigate = (page) => {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  $(`page-${page}`)?.classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  const btnMap = { home:'home', eventos:'eventos', 'meus-bilhetes':'meus-bilhetes', checkin:'checkin', admin:'admin', perfil:'perfil' };
+  if (page === 'home') carregarHome();
+  if (page === 'eventos') carregarEventos();
+  if (page === 'meus-bilhetes') carregarBilhetes();
+  if (page === 'admin') { carregarDashboardAdmin(); carregarPagamentosAdmin(); carregarUsuariosAdmin(); }
+  if (page === 'perfil') carregarPerfil();
+};
+
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+const fazerLogin = async () => {
+  try {
+    const data = await post('/auth/login', { login: $('login-login').value, senha: $('login-senha').value });
+    token = data.token; user = data.usuario;
+    localStorage.setItem('ep_token', token);
+    localStorage.setItem('ep_user', JSON.stringify(user));
+    hideModal('modal-login');
+    initUI();
+    navigate('home');
+    showAlert('Bem-vindo, ' + user.nome + '!', 'success');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const fazerRegistro = async () => {
+  try {
+    const data = await post('/auth/registro', { nome: $('reg-nome').value, login: $('reg-login').value, senha: $('reg-senha').value, telefone: $('reg-telefone').value });
+    token = data.token; user = data.usuario;
+    localStorage.setItem('ep_token', token);
+    localStorage.setItem('ep_user', JSON.stringify(user));
+    hideModal('modal-registro');
+    initUI();
+    navigate('home');
+    showAlert('Conta criada com sucesso!', 'success');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const logout = () => {
+  token = null; user = null;
+  localStorage.removeItem('ep_token');
+  localStorage.removeItem('ep_user');
+  $('nav').style.display = 'none';
+  navigate('landing');
+};
+
+const initUI = () => {
+  if (!user) return;
+  $('nav').style.display = 'flex';
+  $('page-landing').classList.remove('active');
+  $('nav-user-name').textContent = user.nome.split(' ')[0];
+  const badge = $('nav-plano-badge');
+  if (user.is_admin) { badge.textContent = 'Admin'; badge.className = 'badge-plano badge-admin'; }
+  else { badge.textContent = user.tipo_plano; badge.className = `badge-plano badge-${user.tipo_plano}`; }
+  if (user.is_admin) { $('nav-admin').style.display = 'inline-flex'; }
+  $('nav-checkin').style.display = 'inline-flex';
+};
+
+// ═══════════════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════════════
+const carregarHome = async () => {
+  $('home-titulo').textContent = `Olá, ${user?.nome?.split(' ')[0]} 👋`;
+  if (user?.is_admin) {
+    try {
+      const d = await get('/admin/dashboard');
+      html('home-stats', `
+        <div class="stat-card"><div class="stat-value">${d.eventos.total}</div><div class="stat-label">Eventos</div></div>
+        <div class="stat-card"><div class="stat-value">${d.bilhetes.total}</div><div class="stat-label">Bilhetes</div></div>
+        <div class="stat-card"><div class="stat-value">${d.usuarios.total}</div><div class="stat-label">Usuários</div></div>
+        <div class="stat-card"><div class="stat-value">${d.pagamentos.pendentes || 0}</div><div class="stat-label">Pagamentos Pendentes</div></div>
+      `);
+    } catch {}
+  } else {
+    try {
+      const [bilhetes, pagamentos] = await Promise.all([get('/bilhetes'), get('/pagamentos')]);
+      const pendentes = pagamentos.filter(p => p.status === 'pendente');
+      html('home-stats', `
+        <div class="stat-card"><div class="stat-value">${bilhetes.length}</div><div class="stat-label">Meus Bilhetes</div></div>
+        <div class="stat-card"><div class="stat-value">${bilhetes.filter(b=>b.plano==='pro').length}</div><div class="stat-label">Plano Pro</div></div>
+        <div class="stat-card"><div class="stat-value">${pendentes.length}</div><div class="stat-label">Pagamentos Pendentes</div></div>
+        <div class="stat-card"><div class="stat-value">${bilhetes.filter(b=>b.status==='dentro').length}</div><div class="stat-label">Atualmente Dentro</div></div>
+      `);
+      if (pendentes.length) {
+        html('home-pendentes', `
+          <div class="card" style="border-color:var(--gold);">
+            <h3 style="margin-bottom:12px;">⏳ ${pendentes.length} Pagamento(s) Aguardando Confirmação</h3>
+            ${pendentes.map(p => `
+              <div style="padding:12px;background:var(--surface2);border-radius:var(--radius-sm);margin-bottom:8px;">
+                <strong>${p.evento_nome}</strong> — <code>${p.codigo_referencia}</code>
+                <span style="float:right;">${fmtStatus(p.status)}</span>
+                <div style="color:var(--muted);font-size:0.82rem;margin-top:4px;">Expira em: ${fmtData(p.data_expiracao)}</div>
+              </div>
+            `).join('')}
+          </div>
+        `);
+      }
+    } catch {}
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+// EVENTOS
+// ═══════════════════════════════════════════════════════
+let eventosData = [];
+
+const carregarEventos = async () => {
+  try {
+    eventosData = await get('/eventos');
+    html('lista-eventos', eventosData.length ? eventosData.map(ev => `
+      <div class="card">
+        ${ev.imagem_url ? `<img src="${ev.imagem_url}" style="width:100%;height:160px;object-fit:cover;border-radius:${var_radius('sm')};margin-bottom:16px;">` : ''}
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+          <div>
+            <h3 style="font-family:var(--font-head);font-size:1.1rem;">${ev.nome}</h3>
+            ${ev.tema ? `<span style="color:var(--muted);font-size:0.8rem;">🏷️ ${ev.tema}</span>` : ''}
+          </div>
+          <span class="chip ${ev.ativo ? 'chip-green' : 'chip-muted'}">${ev.ativo ? 'Ativo' : 'Inativo'}</span>
+        </div>
+        <div style="color:var(--muted);font-size:0.85rem;margin-bottom:16px;">
+          📅 ${fmtData(ev.data_evento)}<br>
+          ${ev.local ? `📍 ${ev.local}<br>` : ''}
+          🎟️ Limite grátis: ${ev.limite_bilhetes_gratis} • Total: ${ev.total_bilhetes || 0}
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="editarEvento('${ev.id}')">✏️ Editar</button>
+          <button class="btn btn-outline btn-sm" onclick="verBilhetesEvento('${ev.id}', '${ev.nome}')">🎟️ Bilhetes</button>
+          ${user?.is_admin ? `<button class="btn btn-outline btn-sm" onclick="uploadPDFCompleto('${ev.id}')">📄 PDF</button>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="excluirEvento('${ev.id}')">🗑️</button>
+        </div>
+      </div>
+    `).join('') : `<div class="empty"><div class="empty-icon">🎪</div><p>Nenhum evento criado ainda.</p></div>`);
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const var_radius = (s) => s === 'sm' ? '8px' : '14px';
+
+const salvarEvento = async () => {
+  const id = $('evento-edit-id').value;
+  const fd = new FormData();
+  fd.append('nome', $('evento-nome').value);
+  fd.append('tema', $('evento-tema').value);
+  fd.append('data_evento', $('evento-data').value);
+  fd.append('local', $('evento-local').value);
+  fd.append('limite_bilhetes_gratis', $('evento-limite').value);
+  fd.append('descricao', $('evento-desc').value);
+  const img = $('evento-imagem').files[0];
+  if (img) fd.append('imagem', img);
+  try {
+    if (id) { await put('/eventos/' + id, fd); }
+    else { await post('/eventos', fd, true); }
+    hideModal('modal-novo-evento');
+    carregarEventos();
+    showAlert(id ? 'Evento atualizado!' : 'Evento criado com sucesso!', 'success');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const editarEvento = (id) => {
+  const ev = eventosData.find(e => e.id === id);
+  if (!ev) return;
+  $('evento-edit-id').value = id;
+  $('evento-modal-title').textContent = 'Editar Evento';
+  $('evento-nome').value = ev.nome;
+  $('evento-tema').value = ev.tema || '';
+  $('evento-data').value = ev.data_evento?.slice(0,16) || '';
+  $('evento-local').value = ev.local || '';
+  $('evento-limite').value = ev.limite_bilhetes_gratis;
+  $('evento-desc').value = ev.descricao || '';
+  showModal('modal-novo-evento');
+};
+
+const excluirEvento = async (id) => {
+  if (!confirm('Excluir este evento e todos os bilhetes?')) return;
+  try { await del('/eventos/' + id); carregarEventos(); showAlert('Evento excluído.', 'success'); }
+  catch (e) { showAlert(e.message, 'error'); }
+};
+
+const verBilhetesEvento = async (eventoId, nome) => {
+  try {
+    const bilhetes = await get('/bilhetes/evento/' + eventoId);
+    html('lista-bilhetes', `
+      <div style="grid-column:1/-1;margin-bottom:8px;">
+        <strong>Bilhetes do evento: ${nome}</strong>
+        <button class="btn btn-outline btn-sm" style="float:right;" onclick="carregarBilhetes()">← Meus Bilhetes</button>
+      </div>
+      ${bilhetes.map(b => renderBilhete(b)).join('')}
+    `);
+    navigate('meus-bilhetes');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const uploadPDFCompleto = (eventoId) => {
+  const input = document.createElement('input');
+  input.type = 'file'; input.accept = '.pdf';
+  input.onchange = async () => {
+    const fd = new FormData(); fd.append('pdf', input.files[0]);
+    try {
+      await api('POST', '/eventos/' + eventoId + '/pdf-completo', fd, true);
+      showAlert('PDF do evento enviado com sucesso!', 'success');
+    } catch (e) { showAlert(e.message, 'error'); }
+  };
+  input.click();
+};
+
+// ═══════════════════════════════════════════════════════
+// BILHETES
+// ═══════════════════════════════════════════════════════
+const renderBilhete = (b) => `
+  <div class="ticket">
+    <div class="ticket-header">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-family:var(--font-head);font-size:1.05rem;">${b.nome_convidado}</div>
+          <div style="color:var(--muted);font-size:0.8rem;margin-top:2px;">${b.evento_nome || ''} — ${fmtData(b.data_evento)}</div>
+        </div>
+        <div style="text-align:right;">
+          ${fmtStatus(b.status)}
+          <div style="margin-top:4px;"><span class="chip ${b.plano==='pro'?'chip-purple':'chip-muted'}">${b.plano}</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="ticket-body">
+      <div class="ticket-qr">
+        ${b.qr_code_url ? `<img src="${b.qr_code_url}" alt="QR Code" />` : `<div style="color:var(--muted);">QR não disponível</div>`}
+        <div style="font-size:0.75rem;color:var(--muted);margin-top:8px;">${b.qr_code_data}</div>
+      </div>
+      ${b.bloqueado ? `<div style="text-align:center;color:var(--danger);font-weight:600;margin-top:8px;">🔒 BILHETE BLOQUEADO</div>` : ''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:center;">
+        ${b.pdf_url ? `<a href="${b.pdf_url}" target="_blank" class="btn btn-outline btn-sm">📥 PDF</a>` : ''}
+        ${b.imagem_url ? `<a href="${b.imagem_url}" target="_blank" class="btn btn-outline btn-sm">🖼️ Imagem</a>` : ''}
+        <button class="btn btn-outline btn-sm" onclick="abrirUploadConvite('${b.id}')">⬆️ Upload Convite</button>
+        ${b.plano === 'pro' ? `<button class="btn btn-outline btn-sm" onclick="enviarConviteWA('${b.id}')">📲 Enviar WA</button>` : ''}
+        ${user?.is_admin ? `<button class="btn ${b.bloqueado?'btn-success':'btn-danger'} btn-sm" onclick="bloquearBilhete('${b.id}',${!b.bloqueado})">${b.bloqueado?'🔓 Liberar':'🔒 Bloquear'}</button>` : ''}
+      </div>
+      ${b.plano === 'gratis' ? `<div style="text-align:center;margin-top:12px;"><button class="btn btn-gold btn-sm" onclick="solicitarUpgradePro('${b.id}')">⚡ Upgrade para Pro</button></div>` : ''}
+    </div>
+  </div>
+`;
+
+const carregarBilhetes = async () => {
+  try {
+    const bilhetes = await get('/bilhetes');
+    html('lista-bilhetes', bilhetes.length ? bilhetes.map(renderBilhete).join('') :
+      `<div class="empty"><div class="empty-icon">🎟️</div><p>Você ainda não tem bilhetes.</p></div>`
+    );
+    // Carregar eventos para select de compra
+    const eventos = await get('/eventos/publicos').catch(() => []);
+    $('bilhete-evento').innerHTML = '<option value="">Selecione um evento...</option>' +
+      eventos.map(e => `<option value="${e.id}">${e.nome} — ${fmtData(e.data_evento)}</option>`).join('');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const comprarBilhete = async () => {
+  const plano = $('bilhete-plano').value;
+  const telefone = $('bilhete-telefone').value;
+  if (plano === 'pro' && !telefone) { showAlert('Telefone obrigatório para plano Pro', 'error'); return; }
+  try {
+    const bilhete = await post('/bilhetes', {
+      evento_id: $('bilhete-evento').value,
+      nome_convidado: $('bilhete-nome').value,
+      telefone, plano
+    });
+    hideModal('modal-comprar-bilhete');
+    showAlert('Bilhete emitido com sucesso!', 'success');
+    if (plano === 'pro') solicitarPagamentoPro(bilhete.id);
+    carregarBilhetes();
+    navigate('meus-bilhetes');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const togglePlanoInfo = () => {
+  $('info-plano-pro').style.display = $('bilhete-plano').value === 'pro' ? 'block' : 'none';
+};
+
+const abrirUploadConvite = (bilheteId) => {
+  $('upload-bilhete-id').value = bilheteId;
+  showModal('modal-upload-convite');
+};
+
+const uploadConvite = async () => {
+  const id = $('upload-bilhete-id').value;
+  const file = $('upload-arquivo').files[0];
+  if (!file) { showAlert('Selecione um arquivo', 'error'); return; }
+  const fd = new FormData(); fd.append('arquivo', file);
+  try {
+    await api('POST', `/bilhetes/${id}/upload-convite`, fd, true);
+    hideModal('modal-upload-convite');
+    showAlert('Convite enviado para Cloudinary!', 'success');
+    carregarBilhetes();
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const enviarConviteWA = async (id) => {
+  try {
+    const r = await post(`/bilhetes/${id}/enviar-convite`);
+    showAlert(r.mensagem, r.enviado ? 'success' : 'error');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const bloquearBilhete = async (id, bloqueado) => {
+  try {
+    await put(`/bilhetes/${id}/bloquear`, { bloqueado });
+    showAlert(bloqueado ? 'Bilhete bloqueado' : 'Bilhete liberado', 'success');
+    carregarBilhetes();
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+// ═══════════════════════════════════════════════════════
+// PAGAMENTOS
+// ═══════════════════════════════════════════════════════
+const solicitarPagamentoPro = async (bilheteId) => {
+  try {
+    const res = await post('/pagamentos', { bilhete_id: bilheteId, valor: 2500 });
+    html('pagamento-content', `
+      <p style="color:var(--muted);margin-bottom:16px;">Para ativar o plano Pro, envie o pagamento via Express:</p>
+      <div class="ref-box">
+        <div class="ref-code">${res.codigo_referencia}</div>
+        <div class="ref-instrucoes">${res.instrucoes}</div>
+      </div>
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:14px;font-size:0.85rem;color:var(--muted);">
+        ⏰ <strong>Prazo máximo: 2 dias</strong> para confirmação.<br>
+        Após enviar o pagamento, aguarde a confirmação do administrador.
+      </div>
+    `);
+    showModal('modal-pagamento');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const solicitarUpgradePro = (bilheteId) => solicitarPagamentoPro(bilheteId);
+
+// ═══════════════════════════════════════════════════════
+// CHECK-IN
+// ═══════════════════════════════════════════════════════
+const fazerCheckin = async () => {
+  const qr = $('qr-input').value.trim();
+  const telefone = $('qr-telefone').value.trim();
+  if (!qr) { showAlert('Insira o código QR', 'error'); return; }
+  try {
+    const r = await post('/checkin', { qr_code_data: qr, telefone: telefone || undefined });
+    const isOk = r.valido && !r.fraude;
+    html('checkin-result', `
+      <div class="checkin-result ${isOk ? 'checkin-ok' : 'checkin-err'}">
+        <div class="checkin-icon">${isOk ? (r.acao === 'entrada' ? '✅' : r.acao === 'reentrada' ? '🔄' : '👋') : '❌'}</div>
+        <h2 style="font-family:var(--font-head);margin-bottom:8px;">${isOk ? r.acao.toUpperCase() : 'ACESSO NEGADO'}</h2>
+        ${r.bilhete ? `<p>${r.bilhete.nome_convidado} — ${r.bilhete.evento_nome}</p>` : ''}
+        ${r.erro ? `<p style="color:var(--danger);">${r.erro}</p>` : ''}
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:8px;">Status: ${r.status || 'inválido'}</p>
+      </div>
+    `);
+    $('qr-input').value = '';
+  } catch (e) {
+    html('checkin-result', `<div class="checkin-result checkin-err"><div class="checkin-icon">❌</div><h2>ERRO</h2><p style="color:var(--danger);">${e.message}</p></div>`);
+  }
+};
+
+// ═══════════════════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════════════════
+const adminTab = (tab, btn) => {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  ['visao-geral','pagamentos','usuarios','relatorios'].forEach(t => {
+    $(`admin-${t}`).style.display = t === tab ? 'block' : 'none';
+  });
+};
+
+const carregarDashboardAdmin = async () => {
+  try {
+    const d = await get('/admin/dashboard');
+    html('admin-stats', `
+      <div class="stat-card"><div class="stat-value" style="color:var(--primary);">${d.eventos.total}</div><div class="stat-label">Total Eventos</div></div>
+      <div class="stat-card"><div class="stat-value">${d.bilhetes.total}</div><div class="stat-label">Bilhetes Emitidos</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:var(--success);">${d.bilhetes.dentro || 0}</div><div class="stat-label">Dentro Agora</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:var(--accent);">${d.bilhetes.pro || 0}</div><div class="stat-label">Bilhetes Pro</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:var(--gold);">${d.pagamentos.pendentes || 0}</div><div class="stat-label">Pag. Pendentes</div></div>
+      <div class="stat-card"><div class="stat-value" style="color:var(--success);">${Number(d.pagamentos.receita || 0).toLocaleString('pt-AO')} AOA</div><div class="stat-label">Receita Confirmada</div></div>
+    `);
+    if (d.top_eventos?.length) {
+      html('admin-top-eventos', `
+        <h3 style="font-family:var(--font-head);margin-bottom:16px;">Top Eventos Ativos</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Evento</th><th>Bilhetes</th><th>Dentro</th><th>Taxa</th></tr></thead>
+          <tbody>${d.top_eventos.map(e => `
+            <tr>
+              <td>${e.evento}</td>
+              <td>${e.total_bilhetes}</td>
+              <td>${e.dentro}</td>
+              <td>${e.total_bilhetes > 0 ? Math.round(e.dentro / e.total_bilhetes * 100) : 0}%</td>
+            </tr>
+          `).join('')}</tbody>
+        </table></div>
+      `);
+    }
+    // Popular select de relatórios
+    const eventos = await get('/eventos');
+    $('relatorio-evento-select').innerHTML = eventos.map(e => `<option value="${e.id}">${e.nome}</option>`).join('');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const carregarPagamentosAdmin = async () => {
+  try {
+    const pags = await get('/pagamentos');
+    html('lista-pagamentos-admin', pags.length ? `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Usuário</th><th>Evento</th><th>Referência</th><th>Valor</th><th>Status</th><th>Data</th><th>Ação</th></tr></thead>
+        <tbody>${pags.map(p => `
+          <tr>
+            <td>${p.usuario_nome || p.login}</td>
+            <td>${p.evento_nome}</td>
+            <td><code>${p.codigo_referencia}</code></td>
+            <td>${Number(p.valor).toLocaleString('pt-AO')} AOA</td>
+            <td>${fmtStatus(p.status)}</td>
+            <td style="font-size:0.8rem;">${fmtData(p.data_envio)}</td>
+            <td>${p.status === 'pendente' ? `<button class="btn btn-outline btn-sm" onclick="abrirConfirmarPag('${p.id}','${p.usuario_nome||p.login}','${p.codigo_referencia}',${p.valor},'${p.evento_nome}')">Avaliar</button>` : '-'}</td>
+          </tr>
+        `).join('')}</tbody>
+      </table></div>
+    ` : `<div class="empty"><div class="empty-icon">💳</div><p>Nenhum pagamento registrado.</p></div>`);
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const abrirConfirmarPag = (id, nome, ref, valor, evento) => {
+  $('pag-id').value = id;
+  html('pag-detalhes', `
+    <div class="ref-box">
+      <div><strong>${nome}</strong> — ${evento}</div>
+      <div class="ref-code" style="font-size:1.5rem;margin:8px 0;">${ref}</div>
+      <div>Valor: <strong>${Number(valor).toLocaleString('pt-AO')} AOA</strong></div>
+    </div>
+  `);
+  showModal('modal-confirmar-pag');
+};
+
+const confirmarPagamento = async (acao) => {
+  try {
+    await put(`/pagamentos/${$('pag-id').value}/confirmar`, { acao, notas: $('pag-notas').value });
+    hideModal('modal-confirmar-pag');
+    showAlert(acao === 'confirmar' ? 'Pagamento confirmado! Bilhete atualizado para Pro.' : 'Pagamento rejeitado.', acao === 'confirmar' ? 'success' : 'error');
+    carregarPagamentosAdmin();
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const carregarUsuariosAdmin = async () => {
+  try {
+    const users = await get('/admin/usuarios');
+    html('lista-usuarios-admin', `
+      <div class="table-wrap"><table>
+        <thead><tr><th>Nome</th><th>Login</th><th>Telefone</th><th>Plano</th><th>Admin</th><th>Desde</th><th>Ação</th></tr></thead>
+        <tbody>${users.map(u => `
+          <tr>
+            <td>${u.nome}</td>
+            <td>${u.login}</td>
+            <td>${u.telefone || '-'}</td>
+            <td><span class="chip ${u.tipo_plano==='pro'?'chip-purple':'chip-muted'}">${u.tipo_plano}</span></td>
+            <td>${u.is_admin ? '✅' : '-'}</td>
+            <td style="font-size:0.8rem;">${fmtData(u.criado_em)}</td>
+            <td>
+              <select onchange="alterarPlanoUsuario('${u.id}',this.value)" style="width:auto;padding:4px 8px;font-size:0.8rem;">
+                <option value="gratis" ${u.tipo_plano==='gratis'?'selected':''}>Grátis</option>
+                <option value="pro" ${u.tipo_plano==='pro'?'selected':''}>Pro</option>
+              </select>
+            </td>
+          </tr>
+        `).join('')}</tbody>
+      </table></div>
+    `);
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const alterarPlanoUsuario = async (id, plano) => {
+  try {
+    await put(`/admin/usuarios/${id}/plano`, { tipo_plano: plano });
+    showAlert('Plano atualizado!', 'success');
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const carregarRelatorio = async () => {
+  const id = $('relatorio-evento-select').value;
+  if (!id) return;
+  try {
+    const r = await get(`/admin/relatorio/${id}`);
+    html('relatorio-resultado', `
+      <div class="card" style="margin-bottom:16px;">
+        <h3 style="font-family:var(--font-head);margin-bottom:12px;">📊 ${r.evento.nome}</h3>
+        <div class="stat-grid" style="margin-bottom:0;">
+          <div class="stat-card"><div class="stat-value">${r.resumo.total_bilhetes}</div><div class="stat-label">Total Bilhetes</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--primary);">${r.resumo.pro}</div><div class="stat-label">Pro</div></div>
+          <div class="stat-card"><div class="stat-value">${r.resumo.gratis}</div><div class="stat-label">Grátis</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--success);">${r.resumo.dentro}</div><div class="stat-label">Dentro</div></div>
+          <div class="stat-card"><div class="stat-value" style="color:var(--danger);">${r.resumo.bloqueados}</div><div class="stat-label">Bloqueados</div></div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Convidado</th><th>Telefone</th><th>Plano</th><th>Status</th><th>Bloqueado</th><th>Emitido</th></tr></thead>
+          <tbody>${r.bilhetes.map(b => `
+            <tr>
+              <td>${b.nome_convidado}</td>
+              <td>${b.telefone || '-'}</td>
+              <td><span class="chip ${b.plano==='pro'?'chip-purple':'chip-muted'}">${b.plano}</span></td>
+              <td>${fmtStatus(b.status)}</td>
+              <td>${b.bloqueado ? '<span class="chip chip-red">Sim</span>' : '-'}</td>
+              <td style="font-size:0.8rem;">${fmtData(b.criado_em)}</td>
+            </tr>
+          `).join('')}</tbody>
+        </table>
+      </div>
+    `);
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+// ═══════════════════════════════════════════════════════
+// PERFIL
+// ═══════════════════════════════════════════════════════
+const carregarPerfil = async () => {
+  try {
+    const p = await get('/auth/perfil');
+    $('perfil-nome').value = p.nome;
+    $('perfil-telefone').value = p.telefone || '';
+    html('perfil-plano-info', `
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-family:var(--font-head);">Plano Atual</div>
+          <div style="color:var(--muted);font-size:0.85rem;">Membro desde ${fmtData(p.criado_em)}</div>
+        </div>
+        <span class="badge-plano ${p.is_admin?'badge-admin':p.tipo_plano==='pro'?'badge-pro':'badge-gratis'}">${p.is_admin?'Admin':p.tipo_plano}</span>
+      </div>
+      ${p.tipo_plano === 'gratis' && !p.is_admin ? `
+        <div style="margin-top:16px;padding:14px;background:var(--primary-dim);border-radius:var(--radius-sm);font-size:0.85rem;">
+          <strong>⚡ Upgrade para Pro</strong><br>
+          <span style="color:var(--muted);">Envio automático de convites, anti-fraude e sem limite de bilhetes.</span>
+        </div>
+      ` : ''}
+    `);
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+const salvarPerfil = async () => {
+  const data = { nome: $('perfil-nome').value, telefone: $('perfil-telefone').value };
+  const s = $('perfil-senha').value;
+  if (s) data.senha = s;
+  try {
+    await put('/auth/perfil', data);
+    showAlert('Perfil atualizado!', 'success');
+    $('perfil-senha').value = '';
+  } catch (e) { showAlert(e.message, 'error'); }
+};
+
+// ═══════════════════════════════════════════════════════
+// FECHAR MODAL AO CLICAR FORA
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+// Modal novo evento — reset ao abrir
+document.querySelector('[onclick="showModal(\'modal-novo-evento\')"]')?.addEventListener('click', () => {
+  $('evento-edit-id').value = '';
+  $('evento-modal-title').textContent = 'Novo Evento';
+  ['evento-nome','evento-tema','evento-data','evento-local','evento-desc'].forEach(id => { $(id).value = ''; });
+  $('evento-limite').value = 50;
+});
+
+// ═══════════════════════════════════════════════════════
+// INICIALIZAÇÃO
+// ═══════════════════════════════════════════════════════
+if (token && user) {
+  initUI();
+  navigate('home');
+} else {
+  navigate('landing');
+}
+</script>
+</body>
+</html>
