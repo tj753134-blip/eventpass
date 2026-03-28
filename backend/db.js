@@ -11,6 +11,10 @@ const pool = new Pool({
 const initDB = async () => {
   const client = await pool.connect();
   try {
+    // 0. Garantir extensão para UUID
+    console.log('📦 Verificando extensões...');
+    await client.query('CREATE EXTENSION IF NOT EXISTS "pgcrypto"');
+
     // 1. Criar tipos ENUM com segurança (fora da transação principal)
     // Postgres não suporta 'IF NOT EXISTS' em CREATE TYPE.
     const tipos = [
@@ -30,6 +34,8 @@ const initDB = async () => {
 
     // 2. Iniciar transação para criação de tabelas e índices
     await client.query('BEGIN');
+
+    console.log('🏗️ Atualizando schema das tabelas...');
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
@@ -107,6 +113,14 @@ const initDB = async () => {
       CREATE INDEX IF NOT EXISTS idx_bilhetes_qr ON bilhetes(qr_code_data);
       CREATE INDEX IF NOT EXISTS idx_pagamentos_ref ON pagamentos(codigo_referencia);
       CREATE INDEX IF NOT EXISTS idx_pagamentos_status ON pagamentos(status);
+    `);
+
+    // 3. Garantir que colunas novas existam (Migration manual básica)
+    // Caso você tenha adicionado campos em atualizações recentes
+    await client.query(`
+      ALTER TABLE eventos ADD COLUMN IF NOT EXISTS pdf_completo_url TEXT;
+      ALTER TABLE bilhetes ADD COLUMN IF NOT EXISTS pdf_url TEXT;
+      ALTER TABLE bilhetes ADD COLUMN IF NOT EXISTS imagem_url TEXT;
     `);
 
     await client.query('COMMIT');

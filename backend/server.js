@@ -19,7 +19,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Servir frontend estático
-app.use(express.static(path.join(__dirname, '../frontend/public')));
+app.use(express.static(path.resolve(__dirname, '..', 'frontend', 'public')));
 
 // ─── ROTAS API ───────────────────────────────────────────────────────────────
 app.use('/api', routes);
@@ -29,7 +29,7 @@ app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().
 
 // SPA fallback
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/public/index.html'));
+  res.sendFile(path.resolve(__dirname, '..', 'frontend', 'public', 'index.html'));
 });
 
 // ─── CRON JOBS ───────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ const start = async () => {
     const missing = requiredEnv.filter(key => !process.env[key]);
 
     if (missing.length > 0) {
-      console.error(`❌ ERRO DE CONFIGURAÇÃO: Variáveis faltando no Railway: ${missing.join(', ')}`);
+      console.error(`❌ ERRO DE CONFIGURAÇÃO: Variáveis faltando: ${missing.join(', ')}`);
       process.exit(1);
     }
 
