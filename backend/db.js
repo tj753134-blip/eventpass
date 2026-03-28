@@ -11,15 +11,25 @@ const pool = new Pool({
 const initDB = async () => {
   const client = await pool.connect();
   try {
-    await client.query('BEGIN');
+    // 1. Criar tipos ENUM com segurança (fora da transação principal)
+    // Postgres não suporta 'IF NOT EXISTS' em CREATE TYPE.
+    const tipos = [
+      { nome: 'status_bilhete', def: "AS ENUM ('fora', 'dentro')" },
+      { nome: 'plano_bilhete', def: "AS ENUM ('gratis', 'pro')" },
+      { nome: 'status_pagamento', def: "AS ENUM ('pendente', 'confirmado', 'rejeitado', 'expirado')" },
+      { nome: 'metodo_envio', def: "AS ENUM ('manual', 'api')" },
+      { nome: 'tipo_plano', def: "AS ENUM ('gratis', 'pro')" }
+    ];
 
-    await client.query(`
-      CREATE TYPE IF NOT EXISTS status_bilhete AS ENUM ('fora', 'dentro');
-      CREATE TYPE IF NOT EXISTS plano_bilhete AS ENUM ('gratis', 'pro');
-      CREATE TYPE IF NOT EXISTS status_pagamento AS ENUM ('pendente', 'confirmado', 'rejeitado', 'expirado');
-      CREATE TYPE IF NOT EXISTS metodo_envio AS ENUM ('manual', 'api');
-      CREATE TYPE IF NOT EXISTS tipo_plano AS ENUM ('gratis', 'pro');
-    `).catch(() => {}); // ignorar se já existem
+    for (const tipo of tipos) {
+      const { rowCount } = await client.query("SELECT 1 FROM pg_type WHERE typname = $1", [tipo.nome]);
+      if (rowCount === 0) {
+        await client.query(`CREATE TYPE ${tipo.nome} ${tipo.def}`);
+      }
+    }
+
+    // 2. Iniciar transação para criação de tabelas e índices
+    await client.query('BEGIN');
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS usuarios (
