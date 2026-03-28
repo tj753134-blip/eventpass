@@ -47,6 +47,11 @@ router.post('/auth/registro', async (req, res) => {
       'INSERT INTO usuarios (nome, login, senha_hash, telefone, is_admin, tipo_plano) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id, nome, login, tipo_plano, is_admin',
       [nome, login, senha_hash, telefone, ePrimeiroUsuario, ePrimeiroUsuario ? 'pro' : 'gratis']
     );
+
+    if (ePrimeiroUsuario) {
+      console.log(`👑 PRIMEIRO USUÁRIO DETECTADO: ${login} agora é ADMINISTRADOR.`);
+    }
+
     const token = jwt.sign(rows[0], process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, usuario: rows[0] });
   } catch (err) { res.status(500).json({ erro: err.message }); }
